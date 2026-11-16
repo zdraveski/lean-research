@@ -13,6 +13,7 @@ How lean-research is compared with Anthropic's `deep-research` skill. One run pe
   - bash: `export CLAUDE_CONFIG_DIR="$HOME/.claude-bench"; claude`
   - PowerShell: `$env:CLAUDE_CONFIG_DIR = "$HOME\.claude-bench"; claude`
 - In it: log in, add this repo as a marketplace, run `/plugin install lean-research@lean-research`, and confirm `deep-research` is listed in `/skills`. If it is not, install it into this profile.
+- Both sides run on the same main model and effort.
 - Default permissions, not auto mode. Every permission prompt the person answers is written down, and the allow rules that would remove them go in the README.
 
 ## Runs
