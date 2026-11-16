@@ -23,11 +23,13 @@ one() {
   start=$(now); t0=$(date +%s)
   "$dir/webread" "$url" > "$t.tmp" 2> "$t.err"; code=$?
   reader=$(sed 's/^webread: //' "$t.err" | tr '\n,' '  ' | cut -c1-40)
-  # webread hands PDFs back as raw binary; read them with pdftotext instead
-  if [ "$(head -c4 "$t.tmp")" = "%PDF" ] || [[ "$url" == *.pdf ]]; then
-    # no text means no read: a PDF must never stay "ok" as raw bytes
-    if curl -sL --proto '=http,https' --max-time 60 --max-filesize 50000000 -A "Mozilla/5.0" -o "$t.pdf" "$url" && pdftotext "$t.pdf" "$t.tmp" 2>/dev/null; then code=0; reader=pdftotext; else code=1; fi
-    rm -f "$t.pdf"
+  # webread hands PDFs back as raw binary; read them with pdftotext instead. Text written to .txt, so a failure never damages .tmp
+  raw=; [ "$(head -c4 "$t.tmp")" = "%PDF" ] && raw=1
+  if [ -n "$raw" ] || [[ "$url" == *.pdf ]]; then
+    if curl -sL --proto '=http,https' --max-time 60 --max-filesize 50000000 -A "Mozilla/5.0" -o "$t.pdf" "$url" && pdftotext "$t.pdf" "$t.txt" 2>/dev/null; then mv "$t.txt" "$t.tmp"; code=0; reader=pdftotext
+    elif [ -n "$raw" ]; then code=1  # raw PDF bytes without text are never "ok"; a .pdf URL that served text keeps webread's text
+    fi
+    rm -f "$t.pdf" "$t.txt"
   fi
   # embedded base64 images are never research text, and they hid Reddit's block message 87 KB down
   LC_ALL=C sed -E 's/data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+//g' "$t.tmp" > "$t.tmp2" && mv "$t.tmp2" "$t.tmp"
@@ -48,7 +50,8 @@ one() {
 export -f one
 
 # Cap: count this agent's real opens so far; pages already saved don't count (status is the second-last field: URLs may hold commas)
-used=$(awk -F, -v a="$agent" '$1==a && $(NF-1)!="cache"' "$dir/pages.csv" | wc -l | tr -d ' ')
+# A URL that blocked and was retried counts once (the url is fields 2..NF-5; the last five are start,seconds,bytes,status,reader)
+used=$(awk -F, -v a="$agent" '$1==a && $(NF-1)!="cache" { u=$2; for (i=3;i<=NF-5;i++) u=u "," $i; if (!(u in b)) n++; if ($(NF-1)=="blocked") b[u]=1 } END {print n+0}' "$dir/pages.csv")
 # Sites that block every open; skipped without an open (no wait, no cap use)
 SKIP='//([^/]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
 todo=(); seen=" "; for u in "$@"; do

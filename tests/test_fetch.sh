@@ -96,4 +96,25 @@ STUB_BODY=$good "$N/fetch.sh" ag 'http://a.test/q"x' >/dev/null
 assert_eq 1 "$(grep -cF '"http://a.test/q""x"' "$N/pages.csv")" "quote: doubled in csv"
 "$N/fetch.sh" >/dev/null 2>&1; assert_eq 2 "$?" "no args: usage, exit 2"
 "$N/fetch.sh" ag >/dev/null 2>&1; assert_eq 2 "$?" "no urls: usage, exit 2"
+# a .pdf URL that serves text: webread's text survives when curl or pdftotext fails
+newdir pdftext
+printf '#!/bin/sh
+exit 1
+' > "$T/pdfbin/pdftotext"
+OUT=$(PATH="$T/pdfbin:$PATH" STUB_BODY=$good "$N/fetch.sh" ag http://a.test/html.pdf)
+assert_contains "$OUT" "ok " "pdf url serving text: ok"
+assert_contains "$(tail -1 "$N/pages.csv")" ',ok,stub' "pdf url serving text: webread reader kept"
+assert_eq "$good" "$(cat "$N"/pages/*.md)" "pdf url serving text: text intact"
+printf '#!/bin/sh
+exit 22
+' > "$T/pdfbin/curl"
+newdir pdfcurl
+OUT=$(PATH="$T/pdfbin:$PATH" STUB_BODY=$good "$N/fetch.sh" ag http://a.test/html.pdf)
+assert_contains "$OUT" "ok " "pdf url, curl fails: ok"
+
+# a blocked page that is retried uses one cap slot
+newdir retrycap
+STUB_BODY="Just a moment... $good" "$N/fetch.sh" ag http://a.test/w >/dev/null
+OUT=$(CAP=3 STUB_BODY=$good "$N/fetch.sh" ag http://a.test/1 http://a.test/2)
+assert_not_contains "$OUT" capped "retry counts once against CAP"
 finish
