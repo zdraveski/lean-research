@@ -17,4 +17,7 @@ OUT=$(PATH="$T/bin" "$BASH" "$CD" 2>&1); RC=$?
 assert_eq 1 "$RC" "missing browsers: exit"
 assert_contains "$OUT" "https://github.com/lexmount/moli" "moli link"
 assert_contains "$OUT" "https://github.com/h4ckf0r0day/obscura" "obscura link"
+assert_contains "$OUT" "moli-installer" "moli install command"
+assert_contains "$OUT" "download the STEALTH build" "stealth build named"
+assert_contains "$OUT" "-stealth." "stealth asset name"
 finish

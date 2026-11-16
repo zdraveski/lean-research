@@ -35,7 +35,7 @@ assert_contains "$OUT" "capped (agent ag reached 2 opens) http://a.test/3" "thir
 
 newdir wall
 OUT=$(STUB_BODY="Just a moment... $good" "$N/fetch.sh" ag http://a.test/w)
-assert_eq 2 "$(grep -c ',blocked,' "$N/pages.csv")" "wall: two blocked rows"
+assert_eq 2 "$(grep -c ',blocked,stub' "$N/pages.csv")" "wall: two blocked rows"
 assert_contains "$OUT" "blocked " "wall: blocked line"
 
 newdir thin
@@ -117,4 +117,12 @@ newdir retrycap
 STUB_BODY="Just a moment... $good" "$N/fetch.sh" ag http://a.test/w >/dev/null
 OUT=$(CAP=3 STUB_BODY=$good "$N/fetch.sh" ag http://a.test/1 http://a.test/2)
 assert_not_contains "$OUT" capped "retry counts once against CAP"
+# CAP counts opens even when URLs hold commas; cached pages cost nothing
+newdir capcomma
+CAP=2 STUB_BODY=$good "$N/fetch.sh" ag "http://a.test/a,b" "http://a.test/c,d,e" >/dev/null
+OUT=$(CAP=2 STUB_BODY=$good "$N/fetch.sh" ag http://a.test/f)
+assert_contains "$OUT" "capped (agent ag reached 2 opens) http://a.test/f" "comma urls count against CAP"
+OUT=$(CAP=2 STUB_BODY=$good "$N/fetch.sh" ag "http://a.test/a,b" "http://a.test/c,d,e")
+assert_not_contains "$OUT" capped "cached pages are free at the cap"
+assert_contains "$OUT" "cache 0s" "cached pages still answer"
 finish
