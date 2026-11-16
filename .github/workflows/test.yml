@@ -55,7 +55,7 @@ jobs:
               powershell -ExecutionPolicy ByPass -c "irm https://github.com/lexmount/moli/releases/latest/download/moli-installer.ps1 | iex" ;;
           esac
           # the installer's target dir differs by version and OS: add every candidate, plus the Obscura archive root and any subfolder
-          for d in "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/obscura-bin" "$HOME"/obscura-bin/*/; do
+          for d in "$HOME/.cargo/bin" "$HOME/.local/bin" "${LOCALAPPDATA:-/nonexistent}/Moli/bin" "$HOME/obscura-bin" "$HOME"/obscura-bin/*/; do
             [ -d "$d" ] || continue
             if [ "$RUNNER_OS" = Windows ]; then cygpath -w "$d" >> "$GITHUB_PATH"; else echo "${d%/}" >> "$GITHUB_PATH"; fi
           done
