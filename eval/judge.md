@@ -9,7 +9,7 @@ Report Y: <path>
 1. KEY FINDINGS of the reference: <if eval/keyfindings-<question>.md exists, paste its list here and write "use exactly this list">, otherwise its top-ranked conclusions (the must-haves / main recommendations, exactly 10 or all if fewer), one line each.
 2. For each key finding: FOUND (same conclusion, same or higher rank), DEMOTED (present but ranked lower), MISSING, or CONTRADICTED, in the other report, with a few-word quote as proof.
 3. The other report's top-ranked conclusions that the reference lacks: one line each, and SUPPORTED if the other report cites an opened source (a URL, not "search snippet") for it, else UNSUPPORTED.
-4. ERRORS: claims that the sources show to be wrong, each marked X or Y. "none" if none.
+4. ERRORS: claims that the opened sources in either report show to be wrong, each marked X or Y. "none" if none.
 5. SCORE line: coverage=<FOUND+DEMOTED>/<key findings> found=<FOUND> demoted=<DEMOTED> missing=<MISSING> contradicted=<n> extra_supported=<n> extra_unsupported=<n>
 ```
 

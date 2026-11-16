@@ -17,7 +17,7 @@ mkdir -p "$dir/pages"; [ -f "$dir/pages.csv" ] || echo "agent,url,start,seconds,
 
 one() {
   url=$1; h=$(printf '%s' "$url" | hash12); f="$dir/pages/$h.md"
-  q=${url//'"'/'""'} # a " in a URL is doubled in the csv
+  q=$(printf '%s' "$url" | sed 's/"/""/g') # a " in a URL is doubled in the csv
   t="$f.$$" # temp names per process, so two agents opening one URL don't clobber each other
   if [ -s "$f" ]; then echo "$agent,\"$q\",$(now),0,$(wc -c < "$f" | tr -d ' '),cache,cache" >> "$dir/pages.csv"; echo "cache 0s $f $url"; return; fi
   start=$(now); t0=$(date +%s)
@@ -32,7 +32,7 @@ one() {
     rm -f "$t.pdf" "$t.txt"
   fi
   # embedded base64 images are never research text, and they hid Reddit's block message 87 KB down
-  LC_ALL=C sed -E 's/data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+//g' "$t.tmp" > "$t.tmp2" && mv "$t.tmp2" "$t.tmp"
+  LC_ALL=C sed -E 's#data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+##g' "$t.tmp" > "$t.tmp2" && mv "$t.tmp2" "$t.tmp"
   real=$(tr -d '[:space:]' < "$t.tmp" | wc -c | tr -d ' ')
   if [ $code -ne 0 ]; then st=blocked
   elif head -c 3000 "$t.tmp" | grep -qiE 'blocked by network security|verify you are (a )?human|just a moment|enable javascript and cookies|captcha|access denied'; then st=blocked
@@ -50,11 +50,11 @@ one() {
 export -f one
 
 # Cap: count this agent's real opens so far; pages already saved don't count (status is the second-last field: URLs may hold commas)
-# shortcut: a URL that blocked once is free to retry in later calls; the researcher's turn budget bounds it
 # A URL that blocked and was retried counts once (the url is fields 2..NF-5; the last five are start,seconds,bytes,status,reader)
+# shortcut: a URL that blocked once is free to retry in later calls; the researcher's turn budget bounds it
 used=$(awk -F, -v a="$agent" '$1==a && $(NF-1)!="cache" { u=$2; for (i=3;i<=NF-5;i++) u=u "," $i; if (!(u in b)) n++; if ($(NF-1)=="blocked") b[u]=1 } END {print n+0}' "$dir/pages.csv")
 # Sites that block every open; skipped without an open (no wait, no cap use)
-SKIP='^https?://([^/]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
+SKIP='^https?://([^/?#]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
 todo=(); seen=" "; for u in "$@"; do
   lc=$(printf '%s' "$u" | tr A-Z a-z) # hosts are case-insensitive
   if [[ "$lc" =~ $SKIP ]]; then echo "skipped (site always blocks) $u"; continue; fi

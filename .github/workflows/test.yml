@@ -20,7 +20,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = macOS ]; then /bin/bash tests/run.sh; else bash tests/run.sh; fi
+          if [ "$RUNNER_OS" = macOS ]; then PATH="/bin:/usr/bin:$PATH" /bin/bash tests/run.sh; else bash tests/run.sh; fi
       - name: Test measure.py
         if: matrix.os == 'ubuntu-latest'
         shell: bash
@@ -76,4 +76,4 @@ jobs:
       - name: Smoke test
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = macOS ]; then /bin/bash tests/smoke.sh; else bash tests/smoke.sh; fi
+          if [ "$RUNNER_OS" = macOS ]; then PATH="/bin:/usr/bin:$PATH" /bin/bash tests/smoke.sh; else bash tests/smoke.sh; fi

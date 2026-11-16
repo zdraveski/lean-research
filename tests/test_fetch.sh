@@ -89,6 +89,8 @@ OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "http://x.test/a//reddit.com/")
 assert_not_contains "$OUT" skipped "skip ignores // inside a path"
 OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "HTTPS://WWW.Reddit.com/x")
 assert_contains "$OUT" skipped "skip ignores host case"
+OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "https://foo.test?x=a.reddit.com/" "https://foo.test#a.reddit.com/y")
+assert_not_contains "$OUT" skipped "skip: ? and # end the host"
 
 # a grep pattern that starts with -
 newdir dash
