@@ -1,7 +1,7 @@
 {
   "name": "lean-research",
   "version": "0.1.0",
-  "description": "Multi-source web research with a written report, using batched page fetching and a strict turn budget to spend fewer tokens than deep-research on broad questions.",
+  "description": "Multi-source web research ending in a written report: researcher subagents fetch pages in batches under a strict turn budget, and the report cites only pages that were actually opened.",
   "keywords": ["research", "web research", "report", "deep research", "tokens"],
   "homepage": "https://github.com/zdraveski/lean-research",
   "repository": "https://github.com/zdraveski/lean-research",
