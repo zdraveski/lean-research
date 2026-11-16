@@ -10,4 +10,6 @@ get() { "$py" -I -c 'import json,sys; d=json.load(open(sys.argv[1])); print(eval
 assert_eq lean-research "$(get plugin 'd["name"]')" "plugin name"
 assert_eq lean-research "$(get marketplace 'd["name"]')" "marketplace name"
 assert_eq ./ "$(get marketplace 'd["plugins"][0]["source"]')" "marketplace source"
+ga=$(cat "$root/.gitattributes" 2>&1)
+assert_contains "$ga" "eol=lf" ".gitattributes eol=lf"
 finish
