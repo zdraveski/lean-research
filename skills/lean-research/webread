@@ -1,0 +1,33 @@
+#!/bin/bash
+# webread <url>: a web page as markdown on stdout. Moli first (fast); Obscura's stealth build when Moli is empty,
+# blocked or slow. Says on stderr which one answered, or "blocked" (exit 1) when neither could read it.
+WALL='security verification|verify you are (a )?human|just a moment|captcha|access denied'
+[ -n "$1" ] || { echo "usage: webread <url>" >&2; exit 2; }
+url=$1
+find_tool() { command -v "$1" || command -v "$1.exe"; }
+MOLI=$(find_tool moli); OBSCURA=$(find_tool obscura)
+
+# limited SECONDS CMD...: stdout of CMD, killed after SECONDS. No GNU timeout on macOS; the watcher's output
+# goes to /dev/null or $(...) would wait for its sleep.
+limited() {
+  local secs=$1 pid watcher tmp; shift
+  tmp=$(mktemp "${TMPDIR:-/tmp}/webread.XXXXXX")
+  "$@" >"$tmp" 2>/dev/null & pid=$!
+  ( sleep "$secs"; kill "$pid" ) >/dev/null 2>&1 & watcher=$!
+  wait "$pid" 2>/dev/null
+  kill "$watcher" >/dev/null 2>&1
+  cat "$tmp"; rm -f "$tmp"
+}
+ok() { [ ${#1} -ge 1000 ] && ! grep -qiE "$WALL" <<< "${1:0:3000}"; }
+try() { # try LABEL SECONDS CMD...
+  local label=$1 out; shift
+  [ -n "$2" ] || return 1
+  out=$(limited "$@")
+  ok "$out" && { echo "webread: $label" >&2; printf '%s\n' "$out"; exit 0; }
+}
+# shortcut: under 1000 bytes counts as blocked, so a genuinely tiny page also goes to Obscura (a few seconds, never wrong)
+try moli 15 "$MOLI" fetch --dump markdown "$url"
+try obscura 45 "$OBSCURA" --stealth fetch --dump markdown "$url"
+# Slow JavaScript sites still show their loading screen after Obscura's default 5 s settle.
+try "obscura (long wait)" 90 "$OBSCURA" --stealth fetch --wait 25 --dump markdown "$url"
+echo "webread: blocked, neither browser could read $url" >&2; exit 1

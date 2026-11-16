@@ -1,0 +1,5 @@
+#!/bin/bash
+# Fake Moli: prints $STUB_MOLI_OUT after $STUB_MOLI_SLEEP seconds; logs its arguments to $STUB_LOG.
+echo "moli $*" >> "$STUB_LOG"
+[ -z "$STUB_MOLI_SLEEP" ] || sleep "$STUB_MOLI_SLEEP"
+printf '%s' "$STUB_MOLI_OUT"

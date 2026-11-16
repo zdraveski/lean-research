@@ -1,0 +1,4 @@
+#!/bin/bash
+# Fake Obscura: prints $STUB_OBSCURA_OUT; logs its arguments to $STUB_LOG.
+echo "obscura $*" >> "$STUB_LOG"
+printf '%s' "$STUB_OBSCURA_OUT"
