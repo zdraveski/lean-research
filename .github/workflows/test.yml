@@ -18,6 +18,10 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" = macOS ]; then /bin/bash tests/run.sh; else bash tests/run.sh; fi
+      - name: Test measure.py
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: python3 -I tests/test_measure.py
   online:
     strategy:
       fail-fast: false
