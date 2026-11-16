@@ -5,8 +5,6 @@ description: Multi-source web research ending in a written report, using fewer t
 
 # Lean research
 
-Evidence so far, from private A/B tests against deep-research on five research types (2026-11-12). Tokens: 39-59% fewer on broad questions, about even on a narrow one, and 34% more on a product comparison (measured before the 14-turn budget below was added; not retested). Speed: faster on broad questions (for example 16.7 to 7.6 minutes and 14.5 to 6.1 minutes), about the same on narrow and product questions. Quality: it found all of deep-research's top findings on four types and 9 of 10 on market numbers. Every link in its reports was a page it opened (deep-research: 56-88%). Deep-research made one error that lean avoided; lean made two small errors of its own. The honest claim is "same top findings, better sourced", not "finds more".
-
 Cost comes from **turns**: every turn re-reads the whole conversation, and each subagent starts near 43k tokens. Pages are cheap; turns are not. Every rule below exists to cut turns while keeping evidence.
 
 ## Steps
@@ -40,7 +38,7 @@ Save notes to <abs folder>/<file>.md
 HOW TO WORK (these rules override any other research habit):
 Every turn re-reads this whole conversation, so turns are the cost. Budget 14 turns: 1 date, 1–2 for searches, 1 log, 3–4 fetch batches, at most 3 page reads, 1 notes write. By turn 16, write the notes with what you have and list the rest as gaps.
 1. Run `date -u +%Y-%m-%dT%H:%M:%SZ` once at the start; put start and end times at the top of your notes.
-2. Plan first, then search: 8 to 10 WebSearch calls in total (load WebSearch with ToolSearch "select:WebSearch" if needed), several in one message. After the searches, log them in one Bash call, one line per search: echo "<name>,\"<query>\",$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "<abs folder>/searches.csv"
+2. Plan first, then search: 8 to 10 WebSearch calls in total (load WebSearch with ToolSearch "select:WebSearch" if needed), several in one message. After the searches, log them in one Bash call, one line per search: printf '%s,"%s",%s\n' "<name>" '<query>' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "<abs folder>/searches.csv"
 3. Open pages ONLY with: "<abs folder>/fetch.sh" <name> --grep 'word1|word2' URL1 URL2 ... (5 to 8 URLs per call, always with --grep for the facts you need). It opens them in parallel and prints a status line per page plus the matching lines. When the grep lines aren't enough, read more of a saved page in Bash with `grep -n -C3 'word' <file>` or `sed -n '<a>,<b>p' <file>` (Read can return a stub here), never the same lines twice. You may open up to 25 pages; use most of them. Never use WebFetch or bare webread.
 4. EVIDENCE RULE: every claim that matters must come from a page you opened (cite its URL). A search snippet may be cited only as "(search snippet)" and marks the claim unverified. If you can't open a source for a claim, say so; don't fill it from general knowledge. When a page gives a figure per year (rates, caps, penalties), name the year row you took and why it is the one that applies (tax year vs filing year). Statistics tables rarely come through fetch.sh: use the agency's public API with curl and cite the series id (US BLS: api.bls.gov/publicAPI/v2/timeseries/data/<series id>, proven; Census, FRED, Eurostat and ONS have similar APIs).
 5. fetch.sh skips sites that always block (review aggregators, reddit, justia) and retries a blocked page once; take a skipped or blocked page's facts from another source (statutes: law.cornell.edu or codes.findlaw.com).
