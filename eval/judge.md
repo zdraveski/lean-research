@@ -1,4 +1,4 @@
-Judge brief: blind quality check of a candidate research report against a reference report on the same question. Spawn as Agent general-purpose, model sonnet, with this text (fill the brackets; give the two paths in random order as X and Y, and tell the judge only which letter is the reference).
+Judge brief: blind quality check of a candidate research report against a reference report on the same question. Spawn in the main profile as Agent general-purpose, model sonnet, with this text (fill the brackets; give the two paths in random order as X and Y, and tell the judge only which letter is the reference).
 
 ```
 Two research reports answer the same question: <question>.

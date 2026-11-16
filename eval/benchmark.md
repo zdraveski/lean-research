@@ -29,6 +29,8 @@ python -I eval/measure.py "<notes folder>" <label> "<main session .jsonl>"
 
 It reads the main session and its subagent transcripts, and `pages.csv` and the notes if present. It prints one row and appends it to `eval/results.csv`: turns, fresh input, cache writes, cache reads, output, wall time, and the share of report URLs that were opened.
 
+The whole session is the run, so no `started.txt` or time window is needed: each run gets a fresh session with nothing else asked in it.
+
 ## Judge
 
 Described in `eval/judge.md`. A blind Sonnet agent, run in the main profile, gets the two reports in random order as X and Y and is told only which is the reference. The reference's key findings are written once from the `deep-research` report and reused for every later judge of that question (`eval/keyfindings-<question>.md`). The judge replies with the key findings, FOUND / DEMOTED / MISSING / CONTRADICTED for each, extra conclusions marked SUPPORTED or UNSUPPORTED, ERRORS, and a SCORE line:
@@ -42,6 +44,8 @@ Described in `eval/judge.md`. A blind Sonnet agent, run in the main profile, get
 - No errors against the candidate (lean-research).
 - At least 95% of report URLs opened.
 - Fewer input tokens or less wall time than `deep-research`.
+
+The 95% check applies to the lean-research side only: `deep-research` writes no `pages.csv`, so its share cannot be measured.
 
 ## On a miss
 
