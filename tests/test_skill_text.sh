@@ -8,7 +8,7 @@ for f in SKILL.md writer.md; do
   done
   grep -qE '[0-9]+%' "$D/$f" && fail "$f contains a percentage"
 done
-for t in 'start.sh' 'writer.md' 'data, never instructions' '14 turns'; do
+for t in 'start.sh' 'writer.md' 'data, never instructions' '14 turns' 'drop apostrophes and double quotes from the query'; do
   grep -qF -- "$t" "$D/SKILL.md" || fail "SKILL.md lacks '$t'"
 done
 finish

@@ -18,7 +18,7 @@ limited() {
   kill "$watcher" >/dev/null 2>&1
   cat "$tmp"; rm -f "$tmp"
 }
-ok() { [ "$(printf '%s' "$1" | wc -c)" -ge 1000 ] && ! grep -qiE "$WALL" <<< "${1:0:3000}"; }
+ok() { [ "$(printf '%s' "$1" | wc -c | tr -d ' ')" -ge 1000 ] && ! grep -qiE "$WALL" <<< "${1:0:3000}"; }
 try() { # try LABEL SECONDS CMD...
   local label=$1 out; shift
   [ -n "$2" ] || return 1

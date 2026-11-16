@@ -50,12 +50,14 @@ one() {
 export -f one
 
 # Cap: count this agent's real opens so far; pages already saved don't count (status is the second-last field: URLs may hold commas)
+# shortcut: a URL that blocked once is free to retry in later calls; the researcher's turn budget bounds it
 # A URL that blocked and was retried counts once (the url is fields 2..NF-5; the last five are start,seconds,bytes,status,reader)
 used=$(awk -F, -v a="$agent" '$1==a && $(NF-1)!="cache" { u=$2; for (i=3;i<=NF-5;i++) u=u "," $i; if (!(u in b)) n++; if ($(NF-1)=="blocked") b[u]=1 } END {print n+0}' "$dir/pages.csv")
 # Sites that block every open; skipped without an open (no wait, no cap use)
-SKIP='//([^/]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
+SKIP='^https?://([^/]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
 todo=(); seen=" "; for u in "$@"; do
-  if [[ "$u" =~ $SKIP ]]; then echo "skipped (site always blocks) $u"; continue; fi
+  lc=$(printf '%s' "$u" | tr A-Z a-z) # hosts are case-insensitive
+  if [[ "$lc" =~ $SKIP ]]; then echo "skipped (site always blocks) $u"; continue; fi
   h=$(printf '%s' "$u" | hash12)
   case "$seen" in *" $h "*) continue;; esac; seen="$seen$h " # a URL repeated in one call opens once
   if [ -s "$dir/pages/$h.md" ] || [ $used -lt $CAP ]; then todo+=("$u"); [ -s "$dir/pages/$h.md" ] || used=$((used+1))

@@ -85,6 +85,10 @@ assert_eq 2 "$(rows)" "dup url: header plus one row"
 newdir skiphost
 OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "http://www.leg2.com/x" "http://a.test/p?ref=g2.com")
 assert_not_contains "$OUT" skipped "skip is anchored to the host"
+OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "http://x.test/a//reddit.com/")
+assert_not_contains "$OUT" skipped "skip ignores // inside a path"
+OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "HTTPS://WWW.Reddit.com/x")
+assert_contains "$OUT" skipped "skip ignores host case"
 
 # a grep pattern that starts with -
 newdir dash

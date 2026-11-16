@@ -3,7 +3,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 . "$here/lib.sh"
 WR="$here/../skills/lean-research/webread"
 T=$(mktempdir); trap 'rm -rf "$T"' EXIT
-mkpath "$T/bin" bash grep mktemp rm cat sleep wc
+mkpath "$T/bin" bash grep mktemp rm cat sleep wc tr
 export STUB_LOG="$T/log"
 good=$(head -c 2000 /dev/zero | tr '\0' 'a'); small=$(head -c 300 /dev/zero | tr '\0' 'a')
 wall="Just a moment... $good"
