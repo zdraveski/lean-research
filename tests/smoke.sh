@@ -4,6 +4,7 @@
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp=$(mktemp -d) || exit 1; trap 'rm -rf "$tmp"' EXIT
 cp -R "$root/skills/lean-research/." "$tmp/"   # fetch.sh writes pages/ and pages.csv next to itself
+rm -rf "$tmp/pages" "$tmp/pages.csv"   # a local cache would answer "cache" instead of "ok"
 fails=0
 check() { if [ "$2" = 0 ]; then echo "PASS $1"; else echo "FAIL $1"; fails=$((fails+1)); fi; }
 

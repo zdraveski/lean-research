@@ -5,15 +5,18 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1'  # weekly, to catch upstream breakage
+permissions:
+  contents: read
 jobs:
   offline:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run tests
         shell: bash
         run: |
@@ -23,13 +26,16 @@ jobs:
         shell: bash
         run: python3 -I tests/test_measure.py
   online:
+    # site flakiness must not turn pull requests red
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install poppler
         shell: bash
         run: |
@@ -41,6 +47,7 @@ jobs:
       - name: Install Moli and Obscura
         shell: bash
         run: |
+          set -o pipefail  # a failed download must not hide behind "| sh"
           mkdir -p "$HOME/obscura-bin"
           rel=https://github.com/h4ckf0r0day/obscura/releases/latest/download
           arch=$(uname -m)
