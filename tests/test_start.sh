@@ -23,9 +23,26 @@ assert_eq 1 "$RC" "same title again: exit"
 PATH="$T/bin" "$BASH" "$S" "Other" >/dev/null 2>&1; RC=$?
 assert_eq 1 "$RC" "deps missing: exit"
 [ -e "research_notes/Other" ] && fail "deps missing: no folder"
+OUT=$(PATH="$T/bin" "$BASH" "$S" "Other" 2>&1)
+assert_contains "$OUT" "missing: moli" "deps missing: check-deps names the tool"
+
+for bad in "a/b" "../x" "-x" 'a\b'; do
+  PATH="$P" "$BASH" "$S" "$bad" >/dev/null 2>&1; RC=$?
+  assert_eq 2 "$RC" "bad title '$bad': exit"
+done
+[ -e research_notes/a ] && fail "bad title: nothing created"
+
+# check-deps runs without the exec bit (zip downloads drop it)
+cp -R "$here/../skills/lean-research" "$T/noexec"; chmod -x "$T/noexec/check-deps.sh"
+PATH="$P" "$BASH" "$T/noexec/start.sh" "No exec" >/dev/null 2>&1; RC=$?
+assert_eq 0 "$RC" "check-deps without exec bit: exit"
 
 rm -rf research_notes; mkdir research_notes; printf 'notes.txt\n' > research_notes/.gitignore
 PATH="$P" "$BASH" "$S" "A" >/dev/null 2>&1; PATH="$P" "$BASH" "$S" "B" >/dev/null 2>&1
 assert_eq "notes.txt
 */pages/" "$(cat research_notes/.gitignore)" ".gitignore kept and one */pages/"
+printf 'notes.txt' > research_notes/.gitignore
+PATH="$P" "$BASH" "$S" "C" >/dev/null 2>&1
+assert_eq "notes.txt
+*/pages/" "$(cat research_notes/.gitignore)" ".gitignore without a final newline"
 finish

@@ -3,7 +3,8 @@
 here=$(cd "$(dirname "$0")" && pwd)
 title=$1
 [ -n "$title" ] || { echo "usage: start.sh \"<title>\"" >&2; exit 2; }
-"$here/check-deps.sh" || exit 1
+case $title in */*|*\\*|*..*|-*) echo "start.sh: use letters, numbers and spaces in the title" >&2; exit 2;; esac
+bash "$here/check-deps.sh" || exit 1
 dir=research_notes/$title
 [ -e "$dir" ] && { echo "start.sh: $dir already exists, pick a different title" >&2; exit 1; }
 mkdir -p "$dir" reports || exit 1

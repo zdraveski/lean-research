@@ -11,7 +11,6 @@ rel=https://github.com/h4ckf0r0day/obscura/releases/latest/download
 rc=0
 miss() { echo "missing: $1 ($2)"; shift 2; printf '  %s\n' "$@"; rc=1; }
 
-have bash || miss bash "https://www.gnu.org/software/bash/" "install bash with your package manager"
 have curl || miss curl "https://curl.se/" "install curl with your package manager"
 if ! have moli; then
   if [ "$os" = windows ]; then
