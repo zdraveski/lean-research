@@ -39,6 +39,7 @@ def is_api(u):  # statistics APIs are read with curl, never through fetch.sh, so
 
 folder, label, session = sys.argv[1], sys.argv[2], sys.argv[3]
 if not os.path.exists(session): sys.exit(f'no session file {session}')
+if not session.endswith('.jsonl'): sys.exit(f'session file must end in .jsonl: {session}')
 M = transcript(session)
 T = [transcript(p) for p in sorted(glob.glob(os.path.join(session[:-len('.jsonl')], 'subagents', 'agent-*.jsonl')))]
 A = [M] + T

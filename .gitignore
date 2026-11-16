@@ -2,3 +2,4 @@ private/
 docs/superpowers/
 research_notes/*/pages/
 __pycache__/
+eval/results.csv
