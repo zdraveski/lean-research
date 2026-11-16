@@ -55,4 +55,45 @@ assert_contains "$OUT" "ok " "odd: ok"
 assert_eq 1 "$(grep -cF "\"$U\"" "$N/pages.csv")" "odd: one quoted row"
 OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "$U")
 assert_contains "$OUT" "cache " "odd: cache"
+
+# PDF branch: webread hands back raw %PDF bytes; curl and pdftotext are stubs
+mkdir -p "$T/pdfbin"; PDFBODY="%PDF$good"
+cat > "$T/pdfbin/curl" <<'STUB'
+#!/bin/sh
+while [ $# -gt 1 ]; do [ "$1" = -o ] && o=$2; shift; done
+printf '%s' "%PDF-stub" > "$o"
+STUB
+printf '#!/bin/sh\nexit 1\n' > "$T/pdfbin/pdftotext"
+chmod +x "$T/pdfbin/curl" "$T/pdfbin/pdftotext"
+newdir pdfbad
+OUT=$(PATH="$T/pdfbin:$PATH" STUB_BODY=$PDFBODY "$N/fetch.sh" ag http://a.test/x.pdf)
+assert_contains "$OUT" "blocked " "pdf without text: blocked"
+assert_eq 0 "$(grep -c ',ok,' "$N/pages.csv")" "pdf without text: never ok"
+assert_eq 0 "$(ls "$N/pages" | wc -l | tr -d ' ')" "pdf without text: nothing saved"
+printf '#!/bin/sh\nprintf %%s "%s" > "$2"\n' "$good" > "$T/pdfbin/pdftotext"
+newdir pdfok
+OUT=$(PATH="$T/pdfbin:$PATH" STUB_BODY=$PDFBODY "$N/fetch.sh" ag http://a.test/x.pdf)
+assert_contains "$OUT" "ok " "pdf with text: ok"
+assert_contains "$(tail -1 "$N/pages.csv")" ',ok,pdftotext' "pdf with text: reader"
+
+# the same URL twice in one call opens once
+newdir dup
+STUB_BODY=$good "$N/fetch.sh" ag http://a.test/d http://a.test/d >/dev/null
+assert_eq 2 "$(rows)" "dup url: header plus one row"
+
+# SKIP matches host names only
+newdir skiphost
+OUT=$(STUB_BODY=$good "$N/fetch.sh" ag "http://www.leg2.com/x" "http://a.test/p?ref=g2.com")
+assert_not_contains "$OUT" skipped "skip is anchored to the host"
+
+# a grep pattern that starts with -
+newdir dash
+OUT=$(STUB_BODY="x -dash y $good" "$N/fetch.sh" ag --grep -dash http://a.test/m)
+assert_contains "$OUT" "x -dash y" "grep: pattern starting with -"
+# a " in a URL is doubled in the csv; no URL is a usage error
+newdir quote
+STUB_BODY=$good "$N/fetch.sh" ag 'http://a.test/q"x' >/dev/null
+assert_eq 1 "$(grep -cF '"http://a.test/q""x"' "$N/pages.csv")" "quote: doubled in csv"
+"$N/fetch.sh" >/dev/null 2>&1; assert_eq 2 "$?" "no args: usage, exit 2"
+"$N/fetch.sh" ag >/dev/null 2>&1; assert_eq 2 "$?" "no urls: usage, exit 2"
 finish

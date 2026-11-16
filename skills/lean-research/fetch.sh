@@ -9,6 +9,7 @@ dir="$(cd "$(dirname "$0")" && pwd)"; export dir
 hash12() { if command -v md5sum >/dev/null; then md5sum; else md5 -q; fi | cut -c1-12; }; export -f hash12
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }; export -f now
 CAP=${CAP:-25}
+[ $# -ge 2 ] || { echo "usage: fetch.sh <agent> [--grep 'regex'] <url>..." >&2; exit 2; }
 agent=$1; shift; pat=""
 [ "$1" = --grep ] && { pat=$2; shift 2; }
 export agent
@@ -16,27 +17,30 @@ mkdir -p "$dir/pages"; [ -f "$dir/pages.csv" ] || echo "agent,url,start,seconds,
 
 one() {
   url=$1; h=$(printf '%s' "$url" | hash12); f="$dir/pages/$h.md"
-  if [ -s "$f" ]; then echo "$agent,\"$url\",$(now),0,$(wc -c < "$f" | tr -d ' '),cache,cache" >> "$dir/pages.csv"; echo "cache 0s $f $url"; return; fi
+  q=${url//'"'/'""'} # a " in a URL is doubled in the csv
+  t="$f.$$" # temp names per process, so two agents opening one URL don't clobber each other
+  if [ -s "$f" ]; then echo "$agent,\"$q\",$(now),0,$(wc -c < "$f" | tr -d ' '),cache,cache" >> "$dir/pages.csv"; echo "cache 0s $f $url"; return; fi
   start=$(now); t0=$(date +%s)
-  "$dir/webread" "$url" > "$f.tmp" 2> "$f.err"; code=$?
-  reader=$(sed 's/^webread: //' "$f.err" | tr '\n,' '  ' | cut -c1-40)
+  "$dir/webread" "$url" > "$t.tmp" 2> "$t.err"; code=$?
+  reader=$(sed 's/^webread: //' "$t.err" | tr '\n,' '  ' | cut -c1-40)
   # webread hands PDFs back as raw binary; read them with pdftotext instead
-  if [ "$(head -c4 "$f.tmp")" = "%PDF" ] || [[ "$url" == *.pdf ]]; then
-    curl -sL -A "Mozilla/5.0" -o "$f.pdf" "$url" && pdftotext "$f.pdf" "$f.tmp" 2>/dev/null && code=0 && reader=pdftotext
-    rm -f "$f.pdf"
+  if [ "$(head -c4 "$t.tmp")" = "%PDF" ] || [[ "$url" == *.pdf ]]; then
+    # no text means no read: a PDF must never stay "ok" as raw bytes
+    if curl -sL --proto '=http,https' --max-time 60 --max-filesize 50000000 -A "Mozilla/5.0" -o "$t.pdf" "$url" && pdftotext "$t.pdf" "$t.tmp" 2>/dev/null; then code=0; reader=pdftotext; else code=1; fi
+    rm -f "$t.pdf"
   fi
   # embedded base64 images are never research text, and they hid Reddit's block message 87 KB down
-  sed -E 's/data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+//g' "$f.tmp" > "$f.tmp2" && mv "$f.tmp2" "$f.tmp"
-  real=$(tr -d '[:space:]' < "$f.tmp" | wc -c | tr -d ' ')
+  LC_ALL=C sed -E 's/data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+//g' "$t.tmp" > "$t.tmp2" && mv "$t.tmp2" "$t.tmp"
+  real=$(tr -d '[:space:]' < "$t.tmp" | wc -c | tr -d ' ')
   if [ $code -ne 0 ]; then st=blocked
-  elif head -c 3000 "$f.tmp" | grep -qiE 'blocked by network security|verify you are (a )?human|just a moment|enable javascript and cookies|captcha|access denied'; then st=blocked
+  elif head -c 3000 "$t.tmp" | grep -qiE 'blocked by network security|verify you are (a )?human|just a moment|enable javascript and cookies|captcha|access denied'; then st=blocked
   elif [ "$real" -lt 500 ]; then st=thin
   else st=ok; fi
   secs=$(( $(date +%s) - t0 ))
-  bytes=$(wc -c < "$f.tmp" | tr -d ' ')
-  if [ $st = ok ]; then mv "$f.tmp" "$f"; else rm -f "$f.tmp"; f=-; fi
-  rm -f "$dir/pages/$h.md.err"
-  echo "$agent,\"$url\",$start,$secs,$bytes,$st,$reader" >> "$dir/pages.csv"
+  bytes=$(wc -c < "$t.tmp" | tr -d ' ')
+  if [ $st = ok ]; then mv "$t.tmp" "$f"; else rm -f "$t.tmp"; f=-; fi
+  rm -f "$t.err" "$t.tmp2"
+  echo "$agent,\"$q\",$start,$secs,$bytes,$st,$reader" >> "$dir/pages.csv"
   echo "$st ${secs}s $f $url"
   # blocks are often momentary
   if [ $st = blocked ] && [ -z "$RETRY" ]; then sleep 3; RETRY=1 one "$url"; fi
@@ -46,10 +50,11 @@ export -f one
 # Cap: count this agent's real opens so far; pages already saved don't count (status is the second-last field: URLs may hold commas)
 used=$(awk -F, -v a="$agent" '$1==a && $(NF-1)!="cache"' "$dir/pages.csv" | wc -l | tr -d ' ')
 # Sites that block every open; skipped without an open (no wait, no cap use)
-SKIP='trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums'
-todo=(); for u in "$@"; do
+SKIP='//([^/]*\.)?(trustpilot\.com|capterra\.com|g2\.com|getapp\.com|softwareadvice\.com|reddit\.com|justia\.com|play\.google\.com|developer\.apple\.com/forums)([/:?#]|$)'
+todo=(); seen=" "; for u in "$@"; do
   if [[ "$u" =~ $SKIP ]]; then echo "skipped (site always blocks) $u"; continue; fi
   h=$(printf '%s' "$u" | hash12)
+  case "$seen" in *" $h "*) continue;; esac; seen="$seen$h " # a URL repeated in one call opens once
   if [ -s "$dir/pages/$h.md" ] || [ $used -lt $CAP ]; then todo+=("$u"); [ -s "$dir/pages/$h.md" ] || used=$((used+1))
   else echo "capped (agent $agent reached $CAP opens) $u"; fi
 done
@@ -57,5 +62,5 @@ done
 
 if [ -n "$pat" ]; then for u in "${todo[@]}"; do
   f="$dir/pages/$(printf '%s' "$u" | hash12).md"; [ -s "$f" ] || continue
-  echo; echo "== $u"; grep -aiE -C1 "$pat" "$f" | tr -s ' ' | head -40
+  echo; echo "== $u"; grep -aiE -C1 -e "$pat" "$f" | tr -s ' ' | head -40
 done; fi
