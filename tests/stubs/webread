@@ -1,0 +1,6 @@
+#!/bin/sh
+# Stub webread: STUB_BODY if set, else the file in STUB_PAGES named host+path with / as _; else blocked.
+if [ -n "${STUB_BODY+x}" ]; then printf '%s' "$STUB_BODY"; echo "webread: stub" >&2; exit 0; fi
+n=$(printf '%s' "$1" | sed -e 's|^[a-z]*://||' -e 's|/|_|g')
+if [ -f "$STUB_PAGES/$n" ]; then cat "$STUB_PAGES/$n"; echo "webread: stub" >&2; exit 0; fi
+echo "webread: blocked" >&2; exit 1
