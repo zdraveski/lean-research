@@ -1,5 +1,10 @@
 name: test
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # weekly, to catch upstream breakage
 jobs:
   offline:
     strategy:
@@ -13,3 +18,51 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" = macOS ]; then /bin/bash tests/run.sh; else bash tests/run.sh; fi
+  online:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poppler
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get update && sudo apt-get install -y poppler-utils ;;
+            macOS) brew install poppler ;;
+            Windows) choco install poppler -y || echo "note: poppler not installed, smoke skips the PDF checks" ;;
+          esac
+      - name: Install Moli and Obscura
+        shell: bash
+        run: |
+          mkdir -p "$HOME/obscura-bin"
+          rel=https://github.com/h4ckf0r0day/obscura/releases/latest/download
+          arch=$(uname -m)
+          case "$RUNNER_OS" in
+            Linux)
+              [ "$arch" = aarch64 ] || arch=x86_64
+              curl -fsSL "$rel/obscura-$arch-linux-stealth.tar.gz" | tar xz -C "$HOME/obscura-bin"
+              curl --proto '=https' --tlsv1.2 -fsSL https://github.com/lexmount/moli/releases/latest/download/moli-installer.sh | sh ;;
+            macOS)
+              [ "$arch" = arm64 ] && arch=aarch64
+              curl -fsSL "$rel/obscura-$arch-macos-stealth.tar.gz" | tar xz -C "$HOME/obscura-bin"
+              curl --proto '=https' --tlsv1.2 -fsSL https://github.com/lexmount/moli/releases/latest/download/moli-installer.sh | sh ;;
+            Windows)
+              curl -fsSLO "$rel/obscura-x86_64-windows-stealth.zip"
+              powershell -c "Expand-Archive obscura-x86_64-windows-stealth.zip -DestinationPath \$HOME/obscura-bin"
+              powershell -ExecutionPolicy ByPass -c "irm https://github.com/lexmount/moli/releases/latest/download/moli-installer.ps1 | iex" ;;
+          esac
+          # the installer's target dir differs by version and OS: add every candidate, plus the Obscura archive root and any subfolder
+          for d in "$HOME/.cargo/bin" "$HOME/.local/bin" "$HOME/obscura-bin" "$HOME"/obscura-bin/*/; do
+            [ -d "$d" ] || continue
+            if [ "$RUNNER_OS" = Windows ]; then cygpath -w "$d" >> "$GITHUB_PATH"; else echo "${d%/}" >> "$GITHUB_PATH"; fi
+          done
+      - name: Print versions
+        shell: bash
+        run: moli --version && obscura --version
+      - name: Smoke test
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then /bin/bash tests/smoke.sh; else bash tests/smoke.sh; fi
