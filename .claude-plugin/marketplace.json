@@ -1,0 +1,16 @@
+{
+  "name": "lean-research",
+  "owner": {
+    "name": "zdraveski"
+  },
+  "metadata": {
+    "description": "lean-research: multi-source web research with a written report."
+  },
+  "plugins": [
+    {
+      "name": "lean-research",
+      "source": "./",
+      "description": "Multi-source web research with a written report, using batched page fetching and a strict turn budget to spend fewer tokens than deep-research on broad questions."
+    }
+  ]
+}

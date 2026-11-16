@@ -1,0 +1,10 @@
+{
+  "name": "lean-research",
+  "version": "0.1.0",
+  "description": "Multi-source web research with a written report, using batched page fetching and a strict turn budget to spend fewer tokens than deep-research on broad questions.",
+  "keywords": ["research", "web research", "report", "deep research", "tokens"],
+  "homepage": "https://github.com/zdraveski/lean-research",
+  "repository": "https://github.com/zdraveski/lean-research",
+  "author": { "name": "zdraveski", "url": "https://github.com/zdraveski" },
+  "license": "MIT"
+}
